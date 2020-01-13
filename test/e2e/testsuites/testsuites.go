@@ -229,6 +229,14 @@ func (t *TestPersistentVolumeClaim) Create() {
 	framework.ExpectNoError(err)
 }
 
+func (t *TestPersistentVolumeClaim) Update() {
+	var err error
+
+	ginkgo.By("updating a PVC")
+	t.persistentVolumeClaim, err = t.client.CoreV1().PersistentVolumeClaims(t.namespace.Name).Update(t.requestedPersistentVolumeClaim)
+	framework.ExpectNoError(err)
+}
+
 func (t *TestPersistentVolumeClaim) ValidateProvisionedPersistentVolume() {
 	var err error
 
@@ -491,6 +499,7 @@ type TestPod struct {
 	client    clientset.Interface
 	pod       *v1.Pod
 	namespace *v1.Namespace
+	pvcs      []*TestPersistentVolumeClaim
 }
 
 func NewTestPod(c clientset.Interface, ns *v1.Namespace, command string) *TestPod {
@@ -514,6 +523,7 @@ func NewTestPod(c clientset.Interface, ns *v1.Namespace, command string) *TestPo
 				Volumes:       make([]v1.Volume, 0),
 			},
 		},
+		pvcs: make([]*TestPersistentVolumeClaim, 0),
 	}
 }
 

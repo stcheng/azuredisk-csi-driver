@@ -41,9 +41,9 @@ var _ = ginkgo.Describe("[azuredisk-csi-e2e] Dynamic Provisioning", func() {
 		t.defineTests(false)
 	})
 
-	ginkgo.Context("[multi-az]", func() {
-		t.defineTests(true)
-	})
+	// ginkgo.Context("[multi-az]", func() {
+	// 	t.defineTests(true)
+	// })
 })
 
 type dynamicProvisioningTestSuite struct {
@@ -401,6 +401,30 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			PodWithSnapshot: podWithSnapshot,
 		}
 		test.Run(cs, snapshotrcs, ns)
+	})
+
+	ginkgo.FIt("should be able to expand???", func() {
+		if testDriver.IsInTree() {
+			ginkgo.Skip("not supported?")
+		}
+		pod := testsuites.PodDetails{
+			Cmd: "df -h",
+			Volumes: t.normalizeVolumes([]testsuites.VolumeDetails{
+				{
+					FSType:    "ext4",
+					ClaimSize: "10Gi",
+					VolumeMount: testsuites.VolumeMountDetails{
+						NameGenerate:      "test-volume-",
+						MountPathGenerate: "/mnt/test-",
+					},
+				},
+			}, isMultiZone),
+		}
+		test := testsuites.DynamicallyProvisionedVolumeExpansionTest{
+			CSIDriver: testDriver,
+			Pod:       pod,
+		}
+		test.Run(cs, ns)
 	})
 }
 

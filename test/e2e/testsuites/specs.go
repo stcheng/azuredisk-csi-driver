@@ -92,6 +92,7 @@ func (pod *PodDetails) SetupWithDynamicVolumes(client clientset.Interface, names
 	cleanupFuncs := make([]func(), 0)
 	for n, v := range pod.Volumes {
 		tpvc, funcs := v.SetupDynamicPersistentVolumeClaim(client, namespace, csiDriver)
+		tpod.pvcs = append(tpod.pvcs, tpvc)
 		cleanupFuncs = append(cleanupFuncs, funcs...)
 		ginkgo.By("setting up the pod")
 		if v.VolumeMode == Block {
@@ -108,8 +109,9 @@ func (pod *PodDetails) SetupWithPreProvisionedVolumes(client clientset.Interface
 	cleanupFuncs := make([]func(), 0)
 	for n, v := range pod.Volumes {
 		tpvc, funcs := v.SetupPreProvisionedPersistentVolumeClaim(client, namespace, csiDriver)
+		tpod.pvcs = append(tpod.pvcs, tpvc)
 		cleanupFuncs = append(cleanupFuncs, funcs...)
-
+		ginkgo.By("setting up the pod")
 		if v.VolumeMode == Block {
 			tpod.SetupRawBlockVolume(tpvc.persistentVolumeClaim, fmt.Sprintf("%s%d", v.VolumeDevice.NameGenerate, n+1), v.VolumeDevice.DevicePath)
 		} else {
@@ -195,6 +197,8 @@ func (volume *VolumeDetails) SetupPreProvisionedPersistentVolumeClaim(client cli
 func (volume *VolumeDetails) CreateStorageClass(client clientset.Interface, namespace *v1.Namespace, csiDriver driver.DynamicPVTestDriver) (*TestStorageClass, func()) {
 	ginkgo.By("setting up the StorageClass")
 	storageClass := csiDriver.GetDynamicProvisionStorageClass(driver.GetParameters(), volume.MountOptions, volume.ReclaimPolicy, volume.VolumeBindingMode, volume.AllowedTopologyValues, namespace.Name)
+	allowVolumeExpansion := true
+	storageClass.AllowVolumeExpansion = &allowVolumeExpansion
 	tsc := NewTestStorageClass(client, namespace, storageClass)
 	tsc.Create()
 	return tsc, tsc.Cleanup
@@ -207,4 +211,9 @@ func CreateVolumeSnapshotClass(client restclientset.Interface, namespace *v1.Nam
 	tvsc.Create()
 
 	return tvsc, tvsc.Cleanup
+}
+
+func (tpvc *TestPersistentVolumeClaim) UpdateDynamicVolumes(client clientset.Interface, namespace *v1.Namespace, csiDriver driver.DynamicPVTestDriver) {
+	ginkgo.By("updating the PVC")
+	tpvc.Update()
 }
